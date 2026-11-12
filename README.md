@@ -2,6 +2,22 @@
 
 Proyecto de cátedra, **Fase 2**. El sitio muestra el menú del día y permite reservar platos para recogerlos en el comedor.
 
+## Arquitectura del Proyecto
+
+```text
+[ Navegador del Cliente ]
+       |
+       | (Petición HTTPS)
+       v
+[ Servidor Web Apache (Puerto 443) ]
+       |
+       | ProxyPass /api/
+       v
+[ Contenedor Express / Node.js (Puerto 4000) ]
+       |
+       v
+[ Lógica del Negocio / Gestión de Inventario ]
+
 ## Qué se actualizó
 
 - El menú muestra precios y existencias. El formulario permite elegir un plato, la cantidad y la hora de retiro.

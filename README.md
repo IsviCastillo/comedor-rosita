@@ -14,7 +14,7 @@ Proyecto de cátedra, **Fase 2**. El sitio muestra el menú del día y permite r
 Instala Git y abre Docker Desktop. En PowerShell:
 
 ```powershell
-git clone https://github.com/Ez3xd/comedor-rosita.git
+git clone https://github.com/IsviCastillo/comedor-rosita.git
 cd comedor-rosita
 Copy-Item .env.example .env
 notepad .env

@@ -232,12 +232,3 @@ Cambia `TU_TOKEN` por el valor de `ADMIN_TOKEN` y ajusta la URL según la opció
    npm run build
    ```
 
-## Evidencias de la entrega
-
-Agrega capturas reales a `docs/evidencias/` después de configurar Apache y mkcert:
-
-- [ ] Sitio servido por Apache.
-- [ ] Menú obtenido a través de `/api/menu`.
-- [ ] Navegador mostrando HTTPS sin advertencias.
-
-Las capturas dependen del entorno local, por eso no se incluyen como evidencia simulada.

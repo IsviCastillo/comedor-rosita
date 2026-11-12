@@ -1,0 +1,61 @@
+==============================================================
+  DIVISION DE ROLES - FASE 2
+  Proyecto: Comedor Rosita
+==============================================================
+
+
+1. ANDERSON EZEQUIEL REYES RIVERA
+   Rol:   Administrador de Servidor Web (Apache)
+   Tarea: Configurar VirtualHosts, ProxyPass y validar que el
+          sitio estatico funcione.
+
+--------------------------------------------------------------
+
+2. EVELIN CAROLINA MORALES FLORES
+   Rol:   Documentacion y QA
+   Tarea: Redactar el README, organizar la carpeta de
+          evidencias y revisar la ortografia.
+
+--------------------------------------------------------------
+
+3. ISVI JOSE CASTILLO CRUZ
+   Rol:   Coordinador / Git
+   Tarea: Aprobar Pull Requests, gestionar el repositorio y
+          asegurar el .gitignore.
+
+--------------------------------------------------------------
+
+4. JORGE HUMBERTO LARA RODEZNO
+   Rol:   Administrador de Seguridad (SSL)
+   Tarea: Generar certificados con mkcert, configurar HTTPS e
+          importar la CA en Windows.
+
+--------------------------------------------------------------
+
+5. JONATHAN DAVID DE LA O ECHEVERRIA
+   Rol:   Pruebas de Integracion
+   Tarea: Clonar el repo, probar el sistema en su PC y tomar
+          capturas de respaldo.
+
+--------------------------------------------------------------
+
+6. JULIO ROMAN VENTURA GOMEZ 
+   Rol:   Pruebas de Integracion
+   Tarea: Levantar el proyecto con Docker y verificar que las
+          rutas /api respondan.
+
+--------------------------------------------------------------
+
+7. OSCAR FABRICIO GUEVARA AGUILAR
+   Rol:   Desarrollo Backend (TypeScript)
+   Tarea: Programar las rutas dinamicas en Express/TypeScript
+          y armar las capturas finales.
+
+
+==============================================================
+  NOTA PARA EL EQUIPO
+==============================================================
+  Si alguien termina su tarea antes, debe apoyar a los de
+  Pruebas de Integracion para tomar las capturas de pantalla
+  que se subiran a docs/evidencias/.
+==============================================================

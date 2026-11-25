@@ -1,204 +1,85 @@
 # Comedor Rosita
 
-Proyecto de cátedra, **Fase 2**. El sitio muestra el menú del día y permite reservar platos para recogerlos en el comedor.
+Proyecto de cátedra, **Fase 3**: clúster de tres nodos Express/TypeScript detrás de un balanceador Nginx. Nginx distribuye las solicitudes con Round Robin y reintenta solicitudes cuando un nodo falla.
 
-## Contenido
+## Arquitectura de Fase 3
 
-- [Arquitectura](#arquitectura)
-- [Qué se actualizó](#qué-se-actualizó)
-- [Formas de ejecutar el proyecto](#formas-de-ejecutar-el-proyecto)
-- [Opción A: Docker (recomendada)](#opción-a-docker-recomendada)
-- [Opción B: desarrollo sin Docker](#opción-b-desarrollo-sin-docker)
-- [Opción C: Apache con HTTPS en WSL2/Ubuntu (entrega)](#opción-c-apache-con-https-en-wsl2ubuntu-entrega)
-- [API](#api)
-- [Comprobaciones](#comprobaciones)
-- [Evidencias de la entrega](#evidencias-de-la-entrega)
+~~~mermaid
+flowchart LR
+    navegador["Navegador / cliente"] -->|"HTTP :8090"| lb["Nginx · lb"]
+    lb -->|"Round Robin · :4000"| nodo1["nodo1 · 172.30.21.11"]
+    lb -->|"Round Robin · :4000"| nodo2["nodo2 · 172.30.21.12"]
+    lb -->|"Round Robin · :4000"| nodo3["nodo3 · 172.30.21.13"]
+~~~
 
-## Arquitectura
+El servicio `lb` publica el puerto `80` del contenedor como `8090` en el equipo. Los tres nodos escuchan en el puerto `4000` dentro de la red Docker `clusternet` (`172.30.21.0/24`); sus direcciones son `172.30.21.11`, `.12` y `.13`, y la del balanceador es `172.30.21.10`. Nginx usa Round Robin por defecto. El upstream marca un nodo como no disponible tras `max_fails=2` durante `fail_timeout=10s` y reintenta ante errores de conexión, timeout, HTTP 502 o 503.
 
-```text
-[ Navegador del cliente ]
-          |
-          | HTTPS (rosita.local:443)  o  HTTP (localhost:8080 con Docker)
-          v
-[ Servidor web Apache ]
-          |
-          | ProxyPass /api/
-          v
-[ API Express / Node.js (puerto 4000) ]
-          |
-          v
-[ Lógica del negocio y gestión de inventario ]
-```
+## Ejecutar el clúster
 
-## Qué se actualizó
-
-- **Menú:** muestra precios y existencias. El formulario permite elegir un plato, la cantidad y la hora de retiro.
-- **API:** está hecha con Express y TypeScript. Valida el pedido, descuenta las unidades reservadas y permite consultar los pedidos pendientes con un token de administrador.
-- **Docker Compose:** levanta el sitio en Apache y la API en Express en dos contenedores, para que cada compañero los ejecute en su computadora.
-- **HTTPS:** la configuración de Apache para HTTPS sigue disponible para la entrega. Guarda las capturas en `docs/evidencias/`.
-
-## Formas de ejecutar el proyecto
-
-| Opción | Cuándo usarla | Dirección del sitio |
-|---|---|---|
-| A. Docker | Para probar el proyecto completo sin instalar Apache ni Node.js | `http://localhost:8080` |
-| B. Sin Docker | Para desarrollar y depurar el código | `http://127.0.0.1:4000` |
-| C. Apache + HTTPS | Para la entrega y las evidencias | `https://rosita.local` |
-
-> **Importante:** el inventario y los pedidos viven en memoria. Cada equipo tiene sus propios datos de prueba y se reinician cada vez que se reinicia la API.
-
-## Opción A: Docker (recomendada)
-
-**Requisitos:** Git y Docker Desktop abierto.
-
-1. Clona el repositorio y crea tu archivo `.env`. En PowerShell:
-
-   ```powershell
-   git clone https://github.com/IsviCastillo/comedor-rosita.git
-   cd comedor-rosita
-   Copy-Item .env.example .env
-   notepad .env
-   ```
-
-2. En `.env`, reemplaza `ADMIN_TOKEN` por un valor privado y guarda el archivo.
-
-3. Construye e inicia los contenedores:
-
-   ```powershell
-   docker compose up --build -d
-   ```
-
-4. Abre <http://localhost:8080>, haz un pre-pedido y usa el mismo token en el panel de cocina para comprobar que aparece.
-
-### Si ya tenías el proyecto clonado
+Requiere Git, Docker Desktop con Docker Compose y PowerShell. Clona el repositorio original:
 
 ```powershell
-git pull
+git clone https://github.com/IsviCastillo/comedor-rosita.git
+cd comedor-rosita
 ```
 
-Luego, si **no** tienes un archivo `.env`, créalo con `Copy-Item .env.example .env` y define tu token. Si ya tienes uno, conserva tu token y no lo sobrescribas.
-
-### Comandos útiles
+En [`.env.example`](.env.example), `ADMIN_TOKEN` contiene un valor de ejemplo. Cópialo a `.env` y reemplázalo por un token privado antes de ejecutar el clúster:
 
 ```powershell
-docker compose ps       # estado de los contenedores
-docker compose logs     # registros
-docker compose down     # detener y eliminar los contenedores
+Copy-Item .env.example .env
+notepad .env
+docker compose up --build -d
+docker compose ps
 ```
 
-## Opción B: desarrollo sin Docker
+Compose usa `token-secreto-rosita` como valor predeterminado de `ADMIN_TOKEN` solo cuando la variable no está definida en el entorno ni en `.env`. No uses ese valor predeterminado para un despliegue real. Abre [el servicio de Fase 3](http://localhost:8090).
 
-**Requisitos:** Node.js 20 o superior.
+El `Dockerfile` configura para cada nodo un healthcheck que consulta `/health` cada 30 segundos, con timeout de 3 segundos, periodo inicial de 5 segundos y 3 reintentos. Compose espera a que los tres nodos estén saludables antes de iniciar `lb`.
 
-Desde la carpeta del proyecto, en PowerShell:
+Para observar Round Robin, consulta el endpoint de salud varias veces y verifica el campo `nodo`:
 
 ```powershell
-npm ci
-$env:ADMIN_TOKEN = "elige-un-token-local"
-npm run dev
+1..6 | ForEach-Object {
+    (Invoke-RestMethod "http://localhost:8090/health").nodo
+}
 ```
 
-Deja esa terminal abierta y visita <http://127.0.0.1:4000>. La página y la API se sirven juntas en el puerto `4000`. El panel de cocina usa el token que definiste en `ADMIN_TOKEN`.
+Con los tres nodos saludables, la secuencia recorre `nodo1`, `nodo2`, `nodo3` y vuelve a empezar.
 
-Para detener el servidor, vuelve a la terminal y presiona `Ctrl+C`.
+Para comprobar el failover, detén `nodo2` y repite las solicitudes. El balanceador seguirá obteniendo respuestas de los otros dos nodos. Al terminar, vuelve a iniciarlo:
 
-## Opción C: Apache con HTTPS en WSL2/Ubuntu (entrega)
-
-Ejecuta todo desde la raíz del proyecto, en una terminal de Ubuntu.
-
-### 1. Inicia el backend
-
-En una terminal de esa misma distribución:
-
-```bash
-npm ci
-export ADMIN_TOKEN='elige-un-token-local'
-npm run dev
+```powershell
+docker compose stop nodo2
+1..6 | ForEach-Object {
+    (Invoke-RestMethod "http://localhost:8090/health").nodo
+}
+docker compose start nodo2
+docker compose ps
 ```
 
-Deja esa terminal abierta: Apache necesita acceder a la API en `127.0.0.1:4000`.
+Para consultar los registros o detener el clúster:
 
-### 2. Instala Apache y habilita los módulos
-
-```bash
-sudo apt update
-sudo apt install apache2 libnss3-tools
-sudo a2enmod ssl proxy proxy_http
+```powershell
+docker compose logs
+docker compose down
 ```
 
-Instala también `mkcert` siguiendo su [guía oficial](https://github.com/FiloSottile/mkcert#installation).
+Las evidencias de las pruebas están en [`docs/evidencias/`](docs/evidencias/).
 
-### 3. Copia el sitio estático
+## Persistencia
 
-Copia el contenido de `public/` a `/var/www/rosita.local/` y dale permisos de lectura a Apache:
-
-```bash
-sudo mkdir -p /var/www/rosita.local
-sudo cp -r public/. /var/www/rosita.local/
-sudo chown -R www-data:www-data /var/www/rosita.local
-```
-
-### 4. Genera un certificado local de confianza
-
-Instala la CA de mkcert en el almacén de confianza del sistema y del navegador, y guarda la llave privada **fuera del repositorio**:
-
-```bash
-mkcert -install
-mkdir -p "$HOME/.local/share/rosita-certs"
-(cd "$HOME/.local/share/rosita-certs" && mkcert rosita.local)
-sudo mkdir -p /etc/apache2/ssl/rosita.local
-sudo install -m 644 "$HOME/.local/share/rosita-certs/rosita.local.pem" /etc/apache2/ssl/rosita.local/rosita.local.pem
-sudo install -m 600 "$HOME/.local/share/rosita-certs/rosita.local-key.pem" /etc/apache2/ssl/rosita.local/rosita.local-key.pem
-```
-
-> Si el navegador está en Windows y Apache en WSL, asegúrate también de que el certificado raíz de mkcert sea de confianza en Windows.
-> **Nunca copies ni publiques la llave privada.**
-
-### 5. Activa los sitios de Apache
-
-```bash
-sudo cp infra/apache/rosita.local.conf /etc/apache2/sites-available/
-sudo cp infra/apache/rosita.local-ssl.conf /etc/apache2/sites-available/
-sudo a2ensite rosita.local.conf rosita.local-ssl.conf
-sudo apache2ctl configtest
-sudo systemctl reload apache2
-```
-
-`apache2ctl configtest` debe responder `Syntax OK` antes de recargar.
-
-### 6. Configura el archivo `hosts`
-
-Añade esta línea al archivo `hosts` del sistema donde abres el navegador:
-
-```text
-127.0.0.1 rosita.local
-```
-
-En Windows el archivo está en `C:\Windows\System32\drivers\etc\hosts` y necesitas abrirlo como administrador. En WSL, confirma que Apache sea accesible desde Windows por `localhost`; si tu red de WSL está configurada de otra forma, usa la dirección que corresponda.
-
-### 7. Verifica
-
-Abre <https://rosita.local> y la API en <https://rosita.local/api/menu>. Para probar el proxy y el backend desde WSL:
-
-```bash
-curl -i https://rosita.local/api/menu
-curl -i https://rosita.local/health
-curl -i http://127.0.0.1:4000/health
-```
-
-Apache redirige HTTP a HTTPS. Si quieres probar sin Apache, consulta <http://127.0.0.1:4000/api/menu>.
+El menú, las existencias y los pedidos viven en memoria en cada proceso Express. No hay base de datos ni almacenamiento persistente: al reiniciar un nodo se pierden sus cambios. Los tres nodos tampoco comparten estado, así que el inventario y los pedidos pueden diferir según qué nodo atienda la solicitud.
 
 ## API
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `GET` | `/api/menu` | Menú con precios, disponibilidad e inventario actual. |
-| `POST` | `/api/pedidos` | Registra un pre-pedido y reserva las unidades disponibles. |
+| `GET` | `/health` | Estado del nodo; incluye su nombre de host. |
+| `GET` | `/api/menu` | Menú con precios, disponibilidad e inventario actual del nodo. |
+| `POST` | `/api/pedidos` | Registra un pedido y reserva las unidades disponibles en ese nodo. |
 | `GET` | `/api/pedidos` | Lista los pedidos pendientes. Requiere `Authorization: Bearer <ADMIN_TOKEN>`. |
-| `GET` | `/health` | Estado básico del backend. |
 
-### Ejemplo de pre-pedido
+Ejemplo de cuerpo para `POST /api/pedidos`:
 
 ```json
 {
@@ -210,25 +91,29 @@ Apache redirige HTTP a HTTPS. Si quieres probar sin Apache, consulta <http://127
 }
 ```
 
-El servidor valida los campos, el horario permitido y las existencias antes de aceptar cada pedido. El inventario solo se descuenta cuando el pedido queda registrado.
+La API valida los campos, el horario permitido y las existencias antes de aceptar cada pedido. El inventario se descuenta solo cuando el pedido queda registrado.
 
-### Ejemplo de consulta administrativa
+## Desarrollo sin Docker
+
+Con Node.js y npm instalados, ejecuta desde la carpeta del proyecto:
 
 ```powershell
-curl.exe -H "Authorization: Bearer TU_TOKEN" http://localhost:8080/api/pedidos
+npm ci
+$env:ADMIN_TOKEN = "elige-un-token-local"
+npm run dev
 ```
 
-Cambia `TU_TOKEN` por el valor de `ADMIN_TOKEN` y ajusta la URL según la opción que estés usando.
+Abre [el servidor de desarrollo](http://127.0.0.1:4000). La página y la API se sirven juntas. Para detenerlo, presiona `Ctrl+C`.
 
-## Comprobaciones
+Los comandos de comprobación y compilación son:
 
-1. Abre el sitio ([Docker](http://localhost:8080) o [HTTPS](https://rosita.local)) y confirma que el menú muestra los platos y sus existencias.
-2. Haz un pedido de prueba con una unidad de un plato disponible. Comprueba que se confirma y que el plato queda con una unidad menos.
-3. Ingresa el token en el panel de administración y comprueba que aparece el pedido.
-4. Verifica que el código compila sin errores:
+```powershell
+npm run typecheck
+npm run build
+```
 
-   ```powershell
-   npm run typecheck
-   npm run build
-   ```
+Para ejecutar la compilación, primero ejecuta `npm run build`; luego `npm start` inicia `dist/index.js`.
 
+## Fase 2: Apache y HTTPS
+
+La guía completa de Apache y `mkcert` para WSL2/Ubuntu está en [`docs/FASE_2.md`](docs/FASE_2.md). La configuración Docker de esa fase está en [`docker-compose.fase2.yml`](docker-compose.fase2.yml), con su complemento HTTPS en [`docker-compose.https.yml`](docker-compose.https.yml). Esa configuración usa [http://localhost:8080](http://localhost:8080) para HTTP y [https://rosita.local](https://rosita.local) para HTTPS; estos puertos y direcciones corresponden únicamente a Fase 2.

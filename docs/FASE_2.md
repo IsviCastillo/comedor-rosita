@@ -26,7 +26,7 @@ El [laboratorio del Equipo 03](https://github.com/Oscxr29/gsw-practico-unidad2-e
 Instala Git y abre Docker Desktop. En PowerShell:
 
 ```powershell
-git clone https://github.com/Ez3xd/comedor-rosita.git
+git clone https://github.com/IsviCastillo/comedor-rosita.git
 cd comedor-rosita
 Copy-Item .env.example .env
 notepad .env

@@ -1,22 +1,24 @@
 # Comedor Rosita
 
-Proyecto de cátedra, **Fase 3**: clúster de tres nodos Express/TypeScript detrás de un balanceador Nginx. Nginx distribuye las solicitudes con Round Robin y reintenta solicitudes cuando un nodo falla.
+Proyecto de cátedra, **Fase 3**: clúster de tres nodos Express/TypeScript detrás de un balanceador Nginx con terminación HTTPS, redirección desde HTTP, balanceo Round Robin y tolerancia a fallos.
 
 ## Arquitectura de Fase 3
 
 ~~~mermaid
 flowchart LR
-    navegador["Navegador / cliente"] -->|"HTTP :8090"| lb["Nginx · lb"]
+    navegador["Navegador / cliente"] -->|"HTTP :80 (301 -> HTTPS) / HTTPS :443"| lb["Nginx · lb"]
     lb -->|"Round Robin · :4000"| nodo1["nodo1 · 172.30.21.11"]
     lb -->|"Round Robin · :4000"| nodo2["nodo2 · 172.30.21.12"]
     lb -->|"Round Robin · :4000"| nodo3["nodo3 · 172.30.21.13"]
 ~~~
 
-El servicio `lb` publica el puerto `80` del contenedor como `8090` en el equipo. Los tres nodos escuchan en el puerto `4000` dentro de la red Docker `clusternet` (`172.30.21.0/24`); sus direcciones son `172.30.21.11`, `.12` y `.13`, y la del balanceador es `172.30.21.10`. Nginx usa Round Robin por defecto. El upstream marca un nodo como no disponible tras `max_fails=2` durante `fail_timeout=10s` y reintenta ante errores de conexión, timeout, HTTP 502 o 503.
+El servicio `lb` publica los puertos `80` (redirige `301` a HTTPS) y `443` (TLS). Los tres nodos escuchan en el puerto `4000` dentro de la red Docker `clusternet` (`172.30.21.0/24`); sus direcciones son `172.30.21.11`, `.12` y `.13`, y la del balanceador es `172.30.21.10`. Nginx usa Round Robin por defecto, marca un nodo como no disponible tras `max_fails=1` durante `fail_timeout=15s` y reintenta ante errores de conexión (`proxy_connect_timeout 1s`), timeout, HTTP 502 o 503.
+
+Si existen certificados locales confiables de `mkcert` en `infra/apache/certs/` (`rosita.local.pem` y `rosita.local-key.pem`), Nginx los carga automáticamente; si no existen, genera un certificado autofirmado al iniciar para `rosita.local` y `localhost`.
 
 ## Ejecutar el clúster
 
-Requiere Git, Docker Desktop con Docker Compose y PowerShell. Clona el repositorio original:
+Requiere Git, Docker Desktop con Docker Compose y PowerShell (con los puertos `80` y `443` libres). Clona el repositorio original:
 
 ```powershell
 git clone https://github.com/IsviCastillo/comedor-rosita.git
@@ -28,31 +30,28 @@ En [`.env.example`](.env.example), `ADMIN_TOKEN` contiene un valor de ejemplo. C
 ```powershell
 Copy-Item .env.example .env
 notepad .env
-docker compose up --build -d
+docker compose up --build -d --wait
 docker compose ps
 ```
 
-Compose usa `token-secreto-rosita` como valor predeterminado de `ADMIN_TOKEN` solo cuando la variable no está definida en el entorno ni en `.env`. No uses ese valor predeterminado para un despliegue real. Abre [el servicio de Fase 3](http://localhost:8090).
+Compose usa `token-secreto-rosita` como valor predeterminado de `ADMIN_TOKEN` solo cuando la variable no está definida en el entorno ni en `.env`. No uses ese valor predeterminado para un despliegue real. Abre [el sitio por HTTPS](https://localhost) (o [https://rosita.local](https://rosita.local) si tienes `127.0.0.1 rosita.local` en `hosts` y los certificados de `mkcert` generados como indica [`docs/FASE_2.md`](docs/FASE_2.md)).
 
 El `Dockerfile` configura para cada nodo un healthcheck que consulta `/health` cada 30 segundos, con timeout de 3 segundos, periodo inicial de 5 segundos y 3 reintentos. Compose espera a que los tres nodos estén saludables antes de iniciar `lb`.
 
-Para observar Round Robin, consulta el endpoint de salud varias veces y verifica el campo `nodo`:
+Para verificar la redirección HTTP → HTTPS y observar Round Robin, consulta `/health` varias veces y revisa el campo `nodo`:
 
 ```powershell
-1..6 | ForEach-Object {
-    (Invoke-RestMethod "http://localhost:8090/health").nodo
-}
+curl.exe -I http://localhost/health
+1..6 | ForEach-Object { curl.exe -sk https://localhost/health; echo "" }
 ```
 
 Con los tres nodos saludables, la secuencia recorre `nodo1`, `nodo2`, `nodo3` y vuelve a empezar.
 
-Para comprobar el failover, detén `nodo2` y repite las solicitudes. El balanceador seguirá obteniendo respuestas de los otros dos nodos. Al terminar, vuelve a iniciarlo:
+Para comprobar el failover, detén `nodo2` y repite las solicitudes. El balanceador seguirá obteniendo respuestas `HTTP 200` de los otros dos nodos sin interrupción. Al terminar, vuelve a iniciarlo:
 
 ```powershell
 docker compose stop nodo2
-1..6 | ForEach-Object {
-    (Invoke-RestMethod "http://localhost:8090/health").nodo
-}
+1..6 | ForEach-Object { curl.exe -sk -w " HTTP %{http_code}\n" https://localhost/health }
 docker compose start nodo2
 docker compose ps
 ```

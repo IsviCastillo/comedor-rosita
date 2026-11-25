@@ -31,11 +31,14 @@ services:
         ipv4_address: 172.30.21.13
 
   lb:
-    image: nginx:alpine
+    build: ./infra/nginx
+    image: comedor-rosita-lb:local
     ports:
-      - "8090:80"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./infra/apache/certs:/etc/nginx/custom-certs:ro
     networks:
       clusternet:
         ipv4_address: 172.30.21.10

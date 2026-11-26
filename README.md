@@ -14,7 +14,7 @@ flowchart LR
 
 El servicio `lb` publica los puertos `80` (redirige `301` a HTTPS) y `443` (TLS). Los tres nodos escuchan en el puerto `4000` dentro de la red Docker `clusternet` (`172.30.21.0/24`); sus direcciones son `172.30.21.11`, `.12` y `.13`, y la del balanceador es `172.30.21.10`. Nginx usa Round Robin por defecto, marca un nodo como no disponible tras `max_fails=1` durante `fail_timeout=15s` y reintenta ante errores de conexión (`proxy_connect_timeout 1s`), timeout, HTTP 502 o 503.
 
-Si existen certificados locales confiables de `mkcert` en `infra/apache/certs/` (`rosita.local.pem` y `rosita.local-key.pem`), Nginx los carga automáticamente; si no existen, genera un certificado autofirmado al iniciar para `rosita.local` y `localhost`.
+Si existen certificados locales confiables de `mkcert` en `infra/apache/certs/` (`rosita.local.pem` y `rosita.local-key.pem`), Nginx los carga automáticamente; si no existen, genera un certificado autofirmado al iniciar para `rosita.local`, `localhost` y `127.0.0.1`.
 
 ## Ejecutar el clúster
 
@@ -34,24 +34,25 @@ docker compose up --build -d --wait
 docker compose ps
 ```
 
-Compose usa `token-secreto-rosita` como valor predeterminado de `ADMIN_TOKEN` solo cuando la variable no está definida en el entorno ni en `.env`. No uses ese valor predeterminado para un despliegue real. Abre [el sitio por HTTPS](https://localhost) (o [https://rosita.local](https://rosita.local) si tienes `127.0.0.1 rosita.local` en `hosts` y los certificados de `mkcert` generados como indica [`docs/FASE_2.md`](docs/FASE_2.md)).
+Compose usa `token-secreto-rosita` como valor predeterminado de `ADMIN_TOKEN` solo cuando la variable no está definida en el entorno ni en `.env`. No uses ese valor predeterminado para un despliegue real. Abre [el sitio por HTTPS](https://127.0.0.1) (o [https://rosita.local](https://rosita.local) si tienes `127.0.0.1 rosita.local` en `hosts` y los certificados de `mkcert` generados como indica [`docs/FASE_2.md`](docs/FASE_2.md)). Usar `127.0.0.1` o `rosita.local` evita conflictos si Apache en WSL está escuchando en IPv6 `[::1]`.
 
 El `Dockerfile` configura para cada nodo un healthcheck que consulta `/health` cada 30 segundos, con timeout de 3 segundos, periodo inicial de 5 segundos y 3 reintentos. Compose espera a que los tres nodos estén saludables antes de iniciar `lb`.
 
 Para verificar la redirección HTTP → HTTPS y observar Round Robin, consulta `/health` varias veces y revisa el campo `nodo`:
 
 ```powershell
-curl.exe -I http://localhost/health
-1..6 | ForEach-Object { curl.exe -sk https://localhost/health; echo "" }
+curl.exe -sSI http://127.0.0.1/health
+1..6 | ForEach-Object { curl.exe -sk -w " HTTP %{http_code}`n" https://127.0.0.1/health }
 ```
 
 Con los tres nodos saludables, la secuencia recorre `nodo1`, `nodo2`, `nodo3` y vuelve a empezar.
 
-Para comprobar el failover, detén `nodo2` y repite las solicitudes. El balanceador seguirá obteniendo respuestas `HTTP 200` de los otros dos nodos sin interrupción. Al terminar, vuelve a iniciarlo:
+Para comprobar el failover, detén `nodo2` y repite las solicitudes. El balanceador seguirá obteniendo respuestas `HTTP 200` de los otros dos nodos sin interrupción. Al terminar, vuelve a iniciarlo y revisa los logs de Nginx:
 
 ```powershell
 docker compose stop nodo2
-1..6 | ForEach-Object { curl.exe -sk -w " HTTP %{http_code}\n" https://localhost/health }
+1..6 | ForEach-Object { curl.exe -sk -w " HTTP %{http_code}\n" https://127.0.0.1/health }
+docker compose logs --tail=30 lb
 docker compose start nodo2
 docker compose ps
 ```

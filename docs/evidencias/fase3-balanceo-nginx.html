@@ -1,7 +1,17 @@
-<!doctype html><meta charset="utf-8"><style>body{margin:35px;background:#111827;color:#e5e7eb;font-family:Consolas,monospace}h1{font-size:25px;color:#6ee7b7}p{color:#9ca3af;font-size:16px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:17px;line-height:1.6;background:#030712;padding:24px;border:1px solid #374151;border-radius:10px}</style><h1>Comedor Rosita — fase3-balanceo-nginx</h1><p>Registro real de comandos Docker y peticiones HTTP · 25/11/2026<br>Vista del archivo fase3-balanceo-nginx.txt · Captura del registro en navegador</p><pre>{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:15:48.165Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo2&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:15:48.257Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:15:48.322Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:15:48.378Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo2&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:15:48.438Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:15:48.503Z&quot;} HTTP 200
-</pre>
+<!doctype html><meta charset="utf-8"><style>body{margin:32px;background:#0f172a;color:#e2e8f0;font-family:Consolas,monospace}h1{font-size:22px;color:#34d399;margin:0 0 6px}p{color:#94a3b8;font-size:14px;margin:0 0 18px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.55;background:#020617;padding:22px;border:1px solid #334155;border-radius:10px;margin:0}</style><h1>Comedor Rosita — Fase 3: Redirección HTTPS y Round-Robin</h1><p>Redirección HTTP 301 -> HTTPS y distribución Round-Robin en /health (nodo3 -> nodo2 -> nodo1)</p><pre>PS&gt; curl.exe -sSI http://127.0.0.1/health
+HTTP/1.1 301 Moved Permanently
+Server: nginx/1.31.3
+Date: Thu, 26 Nov 2026 03:14:07 GMT
+Content-Type: text/html
+Content-Length: 169
+Connection: keep-alive
+Location: https://127.0.0.1/health
+
+
+PS&gt; 1..6 | ForEach-Object { curl.exe -sk -w &quot; HTTP %{http_code}`n&quot; https://127.0.0.1/health }
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:07.424Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo2&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:07.564Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:07.692Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:07.823Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo2&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:07.919Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:08.010Z&quot;} HTTP 200</pre>

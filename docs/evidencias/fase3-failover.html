@@ -1,14 +1,17 @@
-<!doctype html><meta charset="utf-8"><style>body{margin:35px;background:#111827;color:#e5e7eb;font-family:Consolas,monospace}h1{font-size:25px;color:#6ee7b7}p{color:#9ca3af;font-size:16px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:17px;line-height:1.6;background:#030712;padding:24px;border:1px solid #374151;border-radius:10px}</style><h1>Comedor Rosita — fase3-failover</h1><p>Registro real de comandos Docker y peticiones HTTP · 25/11/2026<br>Vista del archivo fase3-failover.txt · Captura del registro en navegador</p><pre>NAME                          IMAGE                                                                     COMMAND                  SERVICE   CREATED              STATUS                        PORTS
-comedor-rosita-api            sha256:338fe5c6e9eff2761b0a3744294a91f62a70a4e465811af3fd425bc0163094b7   &quot;docker-entrypoint.s…&quot;   api       13 days ago          Exited (137) 12 days ago
-comedor-rosita-main-lb-1      nginx:alpine                                                              &quot;/docker-entrypoint.…&quot;   lb        About a minute ago   Up 56 seconds                 0.0.0.0:8090-&gt;80/tcp, [::]:8090-&gt;80/tcp
-comedor-rosita-main-nodo1-1   comedor-rosita-api:local                                                  &quot;docker-entrypoint.s…&quot;   nodo1     About a minute ago   Up About a minute (healthy)   4000/tcp
-comedor-rosita-main-nodo2-1   comedor-rosita-api:local                                                  &quot;docker-entrypoint.s…&quot;   nodo2     About a minute ago   Exited (137) 16 seconds ago
-comedor-rosita-main-nodo3-1   comedor-rosita-api:local                                                  &quot;docker-entrypoint.s…&quot;   nodo3     About a minute ago   Up About a minute (healthy)   4000/tcp
-comedor-rosita-main-web-1     httpd:2.4-alpine                                                          &quot;httpd-foreground -c…&quot;   web       13 days ago          Exited (255) 12 days ago      127.0.0.1:80-&gt;80/tcp, 127.0.0.1:443-&gt;443/tcp, 127.0.0.1:8080-&gt;80/tcp
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:16:09.544Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:16:11.636Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:16:11.739Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:16:11.818Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:16:13.887Z&quot;} HTTP 200
-{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-25T17:16:13.951Z&quot;} HTTP 200
-</pre>
+<!doctype html><meta charset="utf-8"><style>body{margin:32px;background:#0f172a;color:#e2e8f0;font-family:Consolas,monospace}h1{font-size:22px;color:#34d399;margin:0 0 6px}p{color:#94a3b8;font-size:14px;margin:0 0 18px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.55;background:#020617;padding:22px;border:1px solid #334155;border-radius:10px;margin:0}</style><h1>Comedor Rosita — Fase 3: Failover en Vivo (nodo2 detenido)</h1><p>Detención de nodo2 y 6 peticiones HTTPS consecutivas atendidas con HTTP 200 por nodo1 y nodo3</p><pre>PS&gt; docker compose stop nodo2
+ Container comedor-rosita-nodo2-1 Stopping
+Container comedor-rosita-nodo2-1 Stopped 
+
+PS&gt; docker compose ps
+NAME                     IMAGE                      COMMAND                  SERVICE   CREATED       STATUS                 PORTS
+comedor-rosita-lb-1      comedor-rosita-lb:local    &quot;/docker-entrypoint.…&quot;   lb        5 hours ago   Up 5 hours (healthy)   0.0.0.0:80-&gt;80/tcp, [::]:80-&gt;80/tcp, 0.0.0.0:443-&gt;443/tcp, [::]:443-&gt;443/tcp
+comedor-rosita-nodo1-1   comedor-rosita-api:local   &quot;docker-entrypoint.s…&quot;   nodo1     5 hours ago   Up 5 hours (healthy)   4000/tcp
+comedor-rosita-nodo3-1   comedor-rosita-api:local   &quot;docker-entrypoint.s…&quot;   nodo3     5 hours ago   Up 5 hours (healthy)   4000/tcp
+
+PS&gt; 1..6 | ForEach-Object { curl.exe -sk -w &quot; HTTP %{http_code}`n&quot; https://127.0.0.1/health }
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:10.675Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:11.772Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:11.868Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:11.962Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo3&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:12.057Z&quot;} HTTP 200
+{&quot;estado&quot;:&quot;saludable&quot;,&quot;servicio&quot;:&quot;comedor-rosita-api&quot;,&quot;nodo&quot;:&quot;nodo1&quot;,&quot;fecha&quot;:&quot;2026-11-26T03:14:12.152Z&quot;} HTTP 200</pre>

@@ -1,6 +1,17 @@
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo3","fecha":"2026-11-25T17:16:26.596Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo1","fecha":"2026-11-25T17:16:26.684Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo2","fecha":"2026-11-25T17:16:26.738Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo3","fecha":"2026-11-25T17:16:26.812Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo1","fecha":"2026-11-25T17:16:26.908Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo2","fecha":"2026-11-25T17:16:26.981Z"} HTTP 200
+PS> docker compose start nodo2
+ Container comedor-rosita-nodo2-1 Started
+
+PS> docker compose ps
+NAME                     IMAGE                      COMMAND                  SERVICE   CREATED       STATUS                    PORTS
+comedor-rosita-lb-1      comedor-rosita-lb:local    "/docker-entrypoint.…"   lb        5 hours ago   Up 5 hours (healthy)      0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+comedor-rosita-nodo1-1   comedor-rosita-api:local   "docker-entrypoint.s…"   nodo1     5 hours ago   Up 5 hours (healthy)      4000/tcp
+comedor-rosita-nodo2-1   comedor-rosita-api:local   "docker-entrypoint.s…"   nodo2     5 hours ago   Up 44 seconds (healthy)   4000/tcp
+comedor-rosita-nodo3-1   comedor-rosita-api:local   "docker-entrypoint.s…"   nodo3     5 hours ago   Up 5 hours (healthy)      4000/tcp
+
+PS> 1..6 | ForEach-Object { curl.exe -sk -w " HTTP %{http_code}`n" https://127.0.0.1/health }
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo1","fecha":"2026-11-26T03:14:58.334Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo2","fecha":"2026-11-26T03:14:58.438Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo3","fecha":"2026-11-26T03:14:58.555Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo1","fecha":"2026-11-26T03:14:58.652Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo2","fecha":"2026-11-26T03:14:58.745Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo3","fecha":"2026-11-26T03:14:58.839Z"} HTTP 200

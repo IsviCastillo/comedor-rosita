@@ -1,6 +1,17 @@
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo1","fecha":"2026-11-25T17:15:48.165Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo2","fecha":"2026-11-25T17:15:48.257Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo3","fecha":"2026-11-25T17:15:48.322Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo1","fecha":"2026-11-25T17:15:48.378Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo2","fecha":"2026-11-25T17:15:48.438Z"} HTTP 200
-{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo3","fecha":"2026-11-25T17:15:48.503Z"} HTTP 200
+PS> curl.exe -sSI http://127.0.0.1/health
+HTTP/1.1 301 Moved Permanently
+Server: nginx/1.31.3
+Date: Thu, 26 Nov 2026 03:14:07 GMT
+Content-Type: text/html
+Content-Length: 169
+Connection: keep-alive
+Location: https://127.0.0.1/health
+
+
+PS> 1..6 | ForEach-Object { curl.exe -sk -w " HTTP %{http_code}`n" https://127.0.0.1/health }
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo3","fecha":"2026-11-26T03:14:07.424Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo2","fecha":"2026-11-26T03:14:07.564Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo1","fecha":"2026-11-26T03:14:07.692Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo3","fecha":"2026-11-26T03:14:07.823Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo2","fecha":"2026-11-26T03:14:07.919Z"} HTTP 200
+{"estado":"saludable","servicio":"comedor-rosita-api","nodo":"nodo1","fecha":"2026-11-26T03:14:08.010Z"} HTTP 200

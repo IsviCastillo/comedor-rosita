@@ -1,16 +1,11 @@
 # Evidencias de Fase 3
 
-Prueba ejecutada el 25 de noviembre de 2026 en Docker Desktop.
+Pruebas ejecutadas en Docker Desktop con Nginx (HTTPS en puerto `443` + redirección `301` desde HTTP `:80`) y 3 nodos Express/TypeScript.
 
-- `fase3-cluster-activo.png`: tres nodos saludables y Nginx publicado en 8090.
-- `fase3-balanceo-nginx.png`: seis respuestas HTTP 200, en orden nodo1, nodo2, nodo3, nodo1, nodo2, nodo3.
-- `fase3-failover.png`: nodo2 detenido y seis respuestas HTTP 200 de nodo1 y nodo3.
-- `fase3-recuperacion.txt`: nodo2 vuelve a recibir tráfico después de iniciarlo.
+- `fase3-cluster-activo.png` / `.txt`: `docker compose ps` con `nodo1`, `nodo2`, `nodo3` y `lb` en estado `healthy` y puertos `80`/`443`.
+- `fase3-balanceo-nginx.png` / `.txt`: redirección `HTTP 301` de `http://127.0.0.1/health` hacia `https://127.0.0.1/health` y seis respuestas `HTTP 200` en Round-Robin (`nodo3`, `nodo2`, `nodo1`, `nodo3`, `nodo2`, `nodo1`).
+- `fase3-failover.png` / `.txt`: `nodo2` detenido manualmente y seis respuestas consecutivas `HTTP 200` atendidas por `nodo1` y `nodo3` sin interrupción.
+- `fase3-nginx-logs.png` / `.txt`: salida real de `docker compose logs lb` mostrando `upstream=172.30.21.11:4000` / `.12:4000` / `.13:4000`, la detección de timeout al detener `nodo2` (`upstream server temporarily disabled` / `upstream timed out`) y el reintento transparente (`upstream_status=504, 200`).
+- `fase3-recuperacion.txt`: `nodo2` reiniciado (`healthy`) y volviendo a recibir tráfico en Round-Robin.
 
-Las imágenes son capturas en navegador de las salidas reales guardadas en los archivos `.txt`, no capturas de una ventana de terminal. Los archivos `.html` permiten revisar esas mismas salidas. Si la rúbrica exige específicamente una ventana de terminal, usa los comandos del README para repetir la demostración y tomar esas capturas adicionales.
-
-Se validaron además `npm run typecheck`, `npm run build`, `docker compose config --quiet`, `nginx -t`, el sitio y `/api/menu` (HTTP 200).
-
-La red se cambió de la propuesta `172.21.0.0/24` a `172.30.21.0/24`, porque la red Docker `bloglocal_default` ya ocupa `172.21.0.0/16`. Los archivos Compose y Nginx usan las mismas direcciones. No se eliminaron redes ni contenedores de otros proyectos. En la evidencia de failover también aparecen dos contenedores detenidos de la fase anterior.
-
-Al finalizar quedaron los tres nodos saludables y el balanceador en ejecución.
+Las imágenes `fase3-*.png` se generaron a partir de las salidas reales capturadas en los archivos `.txt`. También se conservan las capturas previas de Fase 2 con `mkcert` (`Frontend con Candado HTTPS.png`, `httpsrosita.localapimenu.png`, `El ProxyPass y el Candado HTTPS*.png`).
